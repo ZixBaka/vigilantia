@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { View, Text, ScrollView, Pressable } from 'react-native';
+import { View, Text, ScrollView, Pressable, Image } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -16,6 +16,241 @@ interface BadgeDef {
   key: string;
   emoji: string;
   earned: boolean;
+}
+
+interface LandmarkCard {
+  id: string;
+  name: string;
+  city: string;
+  country: string;
+  era: string;
+  type: string;
+  typeIcon: string;
+  eraIcon: string;
+  karmaRequired: number;
+  bgTop: string;
+  bgBottom: string;
+  // Optional local image — place file in assets/cards/{id}.jpg and uncomment in LANDMARK_CARDS
+  image?: any;
+}
+
+// Landmark cards — unlock at karma milestones
+// To show real photos: save the 4 images as:
+//   assets/cards/registan.jpg
+//   assets/cards/amir-timur.jpg
+//   assets/cards/independence.jpg
+//   assets/cards/cultural.jpg
+// Then uncomment the image: require(...) lines below.
+const LANDMARK_CARDS: LandmarkCard[] = [
+  {
+    id: 'registan',
+    name: 'Registan Square',
+    city: 'Samarkand',
+    country: 'Uzbekistan',
+    era: '16th C.',
+    type: 'Heritage Site',
+    typeIcon: '🕌',
+    eraIcon: '📜',
+    karmaRequired: 100,
+    bgTop: '#C4956A',
+    bgBottom: '#6B3E26',
+    // image: require('../../assets/cards/registan.jpg'),
+  },
+  {
+    id: 'amir-timur',
+    name: 'Amir Timur Square',
+    city: 'Tashkent',
+    country: 'Uzbekistan',
+    era: '14th C.',
+    type: 'Navoi Theater',
+    typeIcon: '🐴',
+    eraIcon: '🏛️',
+    karmaRequired: 200,
+    bgTop: '#5B99D0',
+    bgBottom: '#1A4A7A',
+    // image: require('../../assets/cards/amir-timur.jpg'),
+  },
+  {
+    id: 'independence',
+    name: 'Independence Monument',
+    city: 'Tashkent',
+    country: 'Uzbekistan',
+    era: '1991',
+    type: 'City Park',
+    typeIcon: '🦅',
+    eraIcon: '🌐',
+    karmaRequired: 300,
+    bgTop: '#E8C84A',
+    bgBottom: '#2A7FC4',
+    // image: require('../../assets/cards/independence.jpg'),
+  },
+  {
+    id: 'cultural',
+    name: 'Cultural Pavilion',
+    city: 'Tashkent',
+    country: 'Uzbekistan',
+    era: 'Culture',
+    type: 'Museum',
+    typeIcon: '🏛️',
+    eraIcon: '🌍',
+    karmaRequired: 400,
+    bgTop: '#DAF0F0',
+    bgBottom: '#5BA8AC',
+    // image: require('../../assets/cards/cultural.jpg'),
+  },
+];
+
+function LandmarkCardItem({ card, karma }: { card: LandmarkCard; karma: number }) {
+  const unlocked = karma >= card.karmaRequired;
+
+  return (
+    <View
+      style={{
+        width: 210,
+        marginRight: 14,
+        borderRadius: 18,
+        borderWidth: 2.5,
+        borderColor: unlocked ? '#A8B8CC' : '#888',
+        backgroundColor: '#E8ECF0',
+        overflow: 'hidden',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: unlocked ? 0.22 : 0.08,
+        shadowRadius: 10,
+        elevation: unlocked ? 8 : 3,
+      }}
+    >
+      {/* Inner border frame */}
+      <View
+        style={{
+          margin: 3,
+          borderRadius: 14,
+          borderWidth: 1.5,
+          borderColor: unlocked ? '#7B8EA0' : '#AAA',
+          overflow: 'hidden',
+        }}
+      >
+        {/* Photo area */}
+        <View style={{ height: 190, position: 'relative' }}>
+          {card.image && unlocked ? (
+            <Image
+              source={card.image}
+              style={{ width: '100%', height: '100%' }}
+              resizeMode="cover"
+            />
+          ) : (
+            /* Simulated photo with color blocks */
+            <View style={{ flex: 1, backgroundColor: card.bgTop }}>
+              <View
+                style={{
+                  position: 'absolute',
+                  bottom: 0, left: 0, right: 0, height: '45%',
+                  backgroundColor: card.bgBottom,
+                  opacity: 0.75,
+                }}
+              />
+            </View>
+          )}
+
+          {/* REAL HOLAT badge — top left */}
+          <View
+            style={{
+              position: 'absolute', top: 10, left: 10,
+              backgroundColor: 'rgba(15, 30, 70, 0.88)',
+              borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4,
+              borderWidth: 1, borderColor: 'rgba(255,255,255,0.2)',
+            }}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+              <Text style={{ color: 'white', fontSize: 11, fontWeight: '900', letterSpacing: 0.5 }}>
+                REAL HOLAT
+              </Text>
+              <Text style={{ color: '#FFD700', fontSize: 11 }}>⌖</Text>
+            </View>
+            <Text style={{ color: '#AAC4FF', fontSize: 8, fontWeight: '600', letterSpacing: 1 }}>
+              HACKATHON
+            </Text>
+          </View>
+
+          {/* Lock overlay */}
+          {!unlocked && (
+            <View
+              style={{
+                position: 'absolute', inset: 0,
+                top: 0, left: 0, right: 0, bottom: 0,
+                backgroundColor: 'rgba(0,0,0,0.62)',
+                alignItems: 'center', justifyContent: 'center',
+                gap: 8,
+              }}
+            >
+              <Ionicons name="lock-closed" size={36} color="white" />
+              <View
+                style={{
+                  backgroundColor: COLORS.brand,
+                  borderRadius: 20,
+                  paddingHorizontal: 14,
+                  paddingVertical: 6,
+                }}
+              >
+                <Text style={{ color: 'white', fontWeight: '800', fontSize: 13 }}>
+                  {card.karmaRequired} karma
+                </Text>
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* Name banner — gold */}
+        <View
+          style={{
+            backgroundColor: unlocked ? '#F0C040' : '#C8C8C8',
+            paddingHorizontal: 10,
+            paddingVertical: 6,
+          }}
+        >
+          <Text
+            style={{
+              fontSize: 14,
+              fontWeight: '900',
+              fontStyle: 'italic',
+              color: '#1A1A1A',
+            }}
+            numberOfLines={1}
+          >
+            {card.name}
+          </Text>
+        </View>
+
+        {/* Info bar — dark */}
+        <View
+          style={{
+            backgroundColor: '#1E2840',
+            paddingHorizontal: 8,
+            paddingVertical: 7,
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 4,
+            flexWrap: 'nowrap',
+          }}
+        >
+          <Ionicons name="location" size={10} color="#FF6B6B" />
+          <Text style={{ fontSize: 8.5, color: '#E0E8FF', fontWeight: '700', letterSpacing: 0.3 }} numberOfLines={1}>
+            {card.city.toUpperCase()}, {card.country.slice(0, 3).toUpperCase()}
+          </Text>
+          <Text style={{ color: '#555', fontSize: 10 }}>  /</Text>
+          <Text style={{ fontSize: 10 }}>{card.typeIcon}</Text>
+          <Text style={{ fontSize: 8.5, color: '#C8D8FF', fontWeight: '600' }}>{card.era}</Text>
+          <Text style={{ color: '#555', fontSize: 10 }}>  /</Text>
+          <Text style={{ fontSize: 10 }}>{card.eraIcon}</Text>
+          <View style={{ flex: 1 }} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+            <Text style={{ color: '#FFD700', fontSize: 10 }}>★</Text>
+            <Text style={{ fontSize: 8, color: '#FFD700', fontWeight: '800' }}>RARE</Text>
+          </View>
+        </View>
+      </View>
+    </View>
+  );
 }
 
 export default function ProfileScreen() {
@@ -49,10 +284,14 @@ export default function ProfileScreen() {
   ], [stats]);
 
   const earnedCount = badges.filter((b) => b.earned).length;
+  const unlockedCards = LANDMARK_CARDS.filter((c) => stats.karma >= c.karmaRequired).length;
 
   // Max karma for the XP bar (100 karma = full bar, soft cap display)
   const xpPct = Math.min(100, Math.round((stats.karma / 100) * 100));
   const initials = userId ? userId.slice(0, 2).toUpperCase() : '??';
+
+  // Next card to unlock
+  const nextCard = LANDMARK_CARDS.find((c) => stats.karma < c.karmaRequired);
 
   return (
     <ScrollView
@@ -97,6 +336,16 @@ export default function ProfileScreen() {
             }}
           />
         </View>
+
+        {/* Next card unlock hint */}
+        {nextCard && (
+          <Text style={{ fontSize: 12, color: 'rgba(255,255,255,0.7)', textAlign: 'center' }}>
+            {t('collection.nextUnlock', {
+              karma: nextCard.karmaRequired - stats.karma,
+              name: nextCard.name,
+            })}
+          </Text>
+        )}
       </View>
 
       {/* Quick stats row */}
@@ -179,6 +428,42 @@ export default function ProfileScreen() {
             </View>
           ))}
         </View>
+      </View>
+
+      {/* Landmark Collection */}
+      <View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Text style={{ fontSize: 17, fontWeight: '700', color: COLORS.textPrimary }}>
+              {t('collection.title')}
+            </Text>
+            <View
+              style={{
+                backgroundColor: COLORS.brand,
+                borderRadius: 12,
+                paddingHorizontal: 8,
+                paddingVertical: 2,
+              }}
+            >
+              <Text style={{ color: 'white', fontSize: 11, fontWeight: '700' }}>
+                {unlockedCards}/{LANDMARK_CARDS.length}
+              </Text>
+            </View>
+          </View>
+          <Text style={{ fontSize: 12, color: COLORS.textSecondary }}>
+            {t('collection.subtitle')}
+          </Text>
+        </View>
+
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingVertical: 8, paddingRight: 4 }}
+        >
+          {LANDMARK_CARDS.map((card) => (
+            <LandmarkCardItem key={card.id} card={card} karma={stats.karma} />
+          ))}
+        </ScrollView>
       </View>
 
       {/* My issues link */}

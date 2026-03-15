@@ -115,6 +115,11 @@ const resources = {
       'issues.hot': 'Горячее',
       'issues.new': 'Новые',
 
+      // Landmark collection
+      'collection.title': 'Коллекция',
+      'collection.subtitle': '★ RARE',
+      'collection.nextUnlock': 'Ещё {{karma}} кармы → {{name}}',
+
       // Comments
       'issue.comments': 'Комментарии',
       'issue.noComments': 'Пока нет комментариев',
@@ -257,6 +262,11 @@ const resources = {
       'issues.hot': 'Mashhur',
       'issues.new': 'Yangi',
 
+      // Landmark collection
+      'collection.title': 'Kolleksiya',
+      'collection.subtitle': '★ RARE',
+      'collection.nextUnlock': 'Yana {{karma}} karma → {{name}}',
+
       // Comments
       'issue.comments': 'Izohlar',
       'issue.noComments': 'Hozircha izoh yo\'q',
@@ -397,6 +407,11 @@ const resources = {
       'issue.upvotes': 'votes',
       'issues.hot': 'Hot',
       'issues.new': 'New',
+
+      // Landmark collection
+      'collection.title': 'Collection',
+      'collection.subtitle': '★ RARE',
+      'collection.nextUnlock': '{{karma}} more karma → {{name}}',
 
       // Comments
       'issue.comments': 'Comments',
