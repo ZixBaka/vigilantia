@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, Platform } from 'react-native';
 import MapView, { Marker, Callout } from 'react-native-maps';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
@@ -77,7 +77,8 @@ export default function MapScreen() {
                       backgroundColor: COLORS.white,
                       borderRadius: 12,
                       padding: 12,
-                      minWidth: 160,
+                      minWidth: 180,
+                      maxWidth: 240,
                       shadowColor: '#000',
                       shadowOffset: { width: 0, height: 2 },
                       shadowOpacity: 0.15,
@@ -85,35 +86,42 @@ export default function MapScreen() {
                       elevation: 5,
                     }}
                   >
+                    {/* Category row */}
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
                       <Ionicons name={CATEGORY_ICON[issue.category]} size={13} color={COLORS.brand} />
-                      <Text style={{ fontSize: 11, color: COLORS.brand }}>{t(`cat.${issue.category}`)}</Text>
+                      <Text style={{ fontSize: 11, color: COLORS.brand, fontWeight: '600' }}>
+                        {t(`cat.${issue.category}`)}
+                      </Text>
                     </View>
+
+                    {/* Title */}
                     <Text
-                      style={{ fontWeight: '700', fontSize: 13, color: COLORS.textPrimary }}
+                      style={{ fontWeight: '700', fontSize: 14, color: COLORS.textPrimary, lineHeight: 19 }}
                       numberOfLines={2}
                     >
                       {issue.title}
                     </Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: pinColor }} />
-                      <Text style={{ fontSize: 11, color: COLORS.textSecondary }}>
-                        {t(`issue.${issue.status}`)}
-                      </Text>
+
+                    {/* Status + upvotes row */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+                        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: pinColor }} />
+                        <Text style={{ fontSize: 11, color: COLORS.textSecondary }}>
+                          {t(`issue.${issue.status}`)}
+                        </Text>
+                      </View>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
+                        <Ionicons name="arrow-up-circle-outline" size={13} color={COLORS.gray} />
+                        <Text style={{ fontSize: 11, color: COLORS.textSecondary, fontWeight: '600' }}>
+                          {issue.upvotes ?? 0}
+                        </Text>
+                      </View>
                     </View>
-                    <TouchableOpacity
-                      style={{
-                        marginTop: 8,
-                        backgroundColor: COLORS.brand,
-                        borderRadius: 8,
-                        paddingVertical: 6,
-                        alignItems: 'center',
-                      }}
-                    >
-                      <Text style={{ color: COLORS.white, fontWeight: '700', fontSize: 12 }}>
-                        Подробнее →
-                      </Text>
-                    </TouchableOpacity>
+
+                    {/* Tap hint */}
+                    <Text style={{ fontSize: 10, color: COLORS.brand, marginTop: 6, textAlign: 'center' }}>
+                      Нажмите для подробностей →
+                    </Text>
                   </View>
                 </Callout>
               </Marker>
