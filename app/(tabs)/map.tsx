@@ -1,11 +1,11 @@
-import { useState } from 'react';
 import { View, Text, TouchableOpacity, Platform } from 'react-native';
 import MapView, { Marker, Callout } from 'react-native-maps';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
+import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../lib/store';
-import { useStats } from '../../hooks/useStats';
-import { COLORS, PIN_COLORS } from '../../constants/colors';
+import { COLORS } from '../../constants/colors';
+import { IssueCategory, IssueStatus } from '../../types';
 
 const TASHKENT_REGION = {
   latitude: 41.2995,
@@ -14,10 +14,27 @@ const TASHKENT_REGION = {
   longitudeDelta: 0.18,
 };
 
+const CATEGORY_ICON: Record<IssueCategory, keyof typeof Ionicons.glyphMap> = {
+  education: 'book-outline',
+  healthcare: 'medical-outline',
+  transport: 'car-outline',
+  ecology: 'leaf-outline',
+  safety: 'shield-outline',
+  urban: 'business-outline',
+  utilities: 'home-outline',
+  water: 'water-outline',
+  energy: 'flash-outline',
+};
+
+const ISSUE_STATUS_COLOR: Record<IssueStatus, string> = {
+  open: COLORS.warning,
+  done: COLORS.success,
+  problem: COLORS.danger,
+};
+
 export default function MapScreen() {
   const { t } = useTranslation();
-  const schools = useAppStore((s) => s.schools);
-  const stats = useStats(schools);
+  const issues = useAppStore((s) => s.issues);
 
   if (Platform.OS === 'web') {
     return (
@@ -37,67 +54,71 @@ export default function MapScreen() {
         showsUserLocation
         showsMyLocationButton
       >
-        {schools.map((school) => {
-          const schoolStats = stats.schoolStatsMap[school.id];
-          const color = schoolStats ? PIN_COLORS[schoolStats.color] : COLORS.gray;
-
-          return (
-            <Marker
-              key={school.id}
-              coordinate={{ latitude: school.lat, longitude: school.lng }}
-              pinColor={color}
-            >
-              <Callout
-                onPress={() => router.push(`/school/${school.id}`)}
-                tooltip
+        {issues
+          .filter(
+            (issue) =>
+              issue.id &&
+              typeof issue.lat === 'number' &&
+              typeof issue.lng === 'number' &&
+              !isNaN(issue.lat) &&
+              !isNaN(issue.lng)
+          )
+          .map((issue) => {
+            const pinColor = ISSUE_STATUS_COLOR[issue.status] ?? COLORS.gray;
+            return (
+              <Marker
+                key={`issue-${issue.id}`}
+                coordinate={{ latitude: issue.lat, longitude: issue.lng }}
+                pinColor={pinColor}
               >
-                <View
-                  style={{
-                    backgroundColor: COLORS.white,
-                    borderRadius: 12,
-                    padding: 12,
-                    minWidth: 160,
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.15,
-                    shadowRadius: 6,
-                    elevation: 5,
-                  }}
-                >
-                  <Text style={{ fontWeight: '700', fontSize: 14, color: COLORS.textPrimary }}>
-                    {school.name}
-                  </Text>
-                  <Text style={{ fontSize: 12, color: COLORS.textSecondary, marginTop: 2 }}>
-                    {school.district}
-                  </Text>
-                  {schoolStats && schoolStats.total > 0 && (
-                    <View style={{ marginTop: 6 }}>
-                      <Text style={{ fontSize: 12, color }}>
-                        {schoolStats.satisfactionPct}% {t('dashboard.satisfied').toLowerCase()}
-                      </Text>
-                      <Text style={{ fontSize: 11, color: COLORS.gray }}>
-                        {schoolStats.total} {t('schools.reports')}
-                      </Text>
-                    </View>
-                  )}
-                  <TouchableOpacity
+                <Callout onPress={() => router.push(`/issue/${issue.id}`)} tooltip>
+                  <View
                     style={{
-                      marginTop: 8,
-                      backgroundColor: COLORS.brand,
-                      borderRadius: 8,
-                      paddingVertical: 6,
-                      alignItems: 'center',
+                      backgroundColor: COLORS.white,
+                      borderRadius: 12,
+                      padding: 12,
+                      minWidth: 160,
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.15,
+                      shadowRadius: 6,
+                      elevation: 5,
                     }}
                   >
-                    <Text style={{ color: COLORS.white, fontWeight: '700', fontSize: 12 }}>
-                      {t('school.verify')} →
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+                      <Ionicons name={CATEGORY_ICON[issue.category]} size={13} color={COLORS.brand} />
+                      <Text style={{ fontSize: 11, color: COLORS.brand }}>{t(`cat.${issue.category}`)}</Text>
+                    </View>
+                    <Text
+                      style={{ fontWeight: '700', fontSize: 13, color: COLORS.textPrimary }}
+                      numberOfLines={2}
+                    >
+                      {issue.title}
                     </Text>
-                  </TouchableOpacity>
-                </View>
-              </Callout>
-            </Marker>
-          );
-        })}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
+                      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: pinColor }} />
+                      <Text style={{ fontSize: 11, color: COLORS.textSecondary }}>
+                        {t(`issue.${issue.status}`)}
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      style={{
+                        marginTop: 8,
+                        backgroundColor: COLORS.brand,
+                        borderRadius: 8,
+                        paddingVertical: 6,
+                        alignItems: 'center',
+                      }}
+                    >
+                      <Text style={{ color: COLORS.white, fontWeight: '700', fontSize: 12 }}>
+                        Подробнее →
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                </Callout>
+              </Marker>
+            );
+          })}
       </MapView>
 
       {/* Legend */}
@@ -113,10 +134,9 @@ export default function MapScreen() {
         }}
       >
         {[
-          { color: COLORS.success, label: t('status.done') },
-          { color: COLORS.warning, label: 'Смешанный' },
-          { color: COLORS.danger, label: t('status.problem') },
-          { color: COLORS.gray, label: t('status.noReports') },
+          { color: COLORS.warning, label: t('issue.open') },
+          { color: COLORS.success, label: t('issue.done') },
+          { color: COLORS.danger, label: t('issue.problem') },
         ].map((item) => (
           <View key={item.label} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: item.color }} />

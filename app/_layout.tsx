@@ -3,22 +3,28 @@ import '../constants/i18n';
 import { Stack } from 'expo-router';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { seedIfEmpty } from '../lib/seed';
-import { useSchools } from '../hooks/useSchools';
-import { useReports } from '../hooks/useReports';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useIssues } from '../hooks/useIssues';
+import { useAppStore } from '../lib/store';
 
-// Inner component that bootstraps data subscriptions
 function DataBootstrap() {
-  useSchools();
-  useReports();
+  useIssues();
   return null;
 }
 
 export default function RootLayout() {
   const { t } = useTranslation();
+  const setUserId = useAppStore((s) => s.setUserId);
 
   useEffect(() => {
-    seedIfEmpty();
+    (async () => {
+      let id = await AsyncStorage.getItem('userId');
+      if (!id) {
+        id = Date.now().toString(36) + Math.random().toString(36).slice(2);
+        await AsyncStorage.setItem('userId', id);
+      }
+      setUserId(id);
+    })();
   }, []);
 
   return (
@@ -27,12 +33,12 @@ export default function RootLayout() {
       <Stack>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen
-          name="school/[id]"
-          options={{ title: '', headerBackTitle: t('tab.schools') }}
+          name="issue/create"
+          options={{ title: t('issues.create') }}
         />
         <Stack.Screen
-          name="report/[id]"
-          options={{ title: t('report.title') }}
+          name="issue/[id]"
+          options={{ title: '' }}
         />
       </Stack>
     </>

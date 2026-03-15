@@ -17,11 +17,11 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="index"
+        name="issues"
         options={{
-          title: t('tab.schools'),
+          title: t('tab.issues'),
           tabBarIcon: ({ color, size }) => (
-            <Ionicons name="school-outline" size={size} color={color} />
+            <Ionicons name="warning-outline" size={size} color={color} />
           ),
         }}
       />
@@ -40,6 +40,15 @@ export default function TabLayout() {
           title: t('tab.dashboard'),
           tabBarIcon: ({ color, size }) => (
             <Ionicons name="stats-chart-outline" size={size} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: t('tab.profile'),
+          tabBarIcon: ({ color, size }) => (
+            <Ionicons name="person-outline" size={size} color={color} />
           ),
         }}
       />
