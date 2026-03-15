@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useIssues } from '../hooks/useIssues';
 import { useAppStore } from '../lib/store';
+import { seedDemoIssues } from '../lib/seed';
 
 function DataBootstrap() {
   useIssues();
@@ -24,6 +25,7 @@ export default function RootLayout() {
         await AsyncStorage.setItem('userId', id);
       }
       setUserId(id);
+      await seedDemoIssues();
     })();
   }, []);
 

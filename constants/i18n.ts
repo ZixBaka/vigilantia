@@ -110,6 +110,10 @@ const resources = {
       'issue.totalIssues': 'Жалоб',
       'issue.openCount': 'Открытых',
       'issue.resolvedCount': 'Решено',
+      'issue.upvote': 'Поддержать',
+      'issue.upvotes': 'голосов',
+      'issues.hot': 'Горячее',
+      'issues.new': 'Новые',
 
       // Profile & Karma
       'tab.profile': 'Профиль',
@@ -241,6 +245,10 @@ const resources = {
       'issue.totalIssues': 'Shikoyatlar',
       'issue.openCount': 'Ochiq',
       'issue.resolvedCount': 'Hal qilindi',
+      'issue.upvote': "Qo'llab-quvvatlash",
+      'issue.upvotes': 'ovoz',
+      'issues.hot': 'Mashhur',
+      'issues.new': 'Yangi',
 
       // Profile & Karma
       'tab.profile': 'Profil',
@@ -371,6 +379,10 @@ const resources = {
       'issue.totalIssues': 'Issues',
       'issue.openCount': 'Open',
       'issue.resolvedCount': 'Resolved',
+      'issue.upvote': 'Upvote',
+      'issue.upvotes': 'votes',
+      'issues.hot': 'Hot',
+      'issues.new': 'New',
 
       // Profile & Karma
       'tab.profile': 'Profile',

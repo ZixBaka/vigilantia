@@ -5,7 +5,7 @@ import {
 import { useLocalSearchParams, useNavigation } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
-import { doc, updateDoc } from 'firebase/firestore';
+import { doc, updateDoc, arrayUnion, arrayRemove, increment } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useAppStore } from '../../lib/store';
 import { COLORS } from '../../constants/colors';
@@ -37,6 +37,8 @@ export default function IssueDetailScreen() {
   const userId = useAppStore((s) => s.userId);
   const updateIssue = useAppStore((s) => s.updateIssue);
 
+  const toggleUpvote = useAppStore((s) => s.toggleUpvote);
+
   const issue = issues.find((i) => i.id === id);
   const [updating, setUpdating] = useState(false);
 
@@ -53,6 +55,21 @@ export default function IssueDetailScreen() {
   }
 
   const isOwner = issue.createdBy === userId;
+  const voted = (issue.upvoters ?? []).includes(userId);
+
+  async function handleUpvote() {
+    if (!issue?.id) return;
+    toggleUpvote(issue.id, userId);
+    try {
+      await updateDoc(doc(db, 'issues', issue.id), {
+        upvoters: voted ? arrayRemove(userId) : arrayUnion(userId),
+        upvotes: increment(voted ? -1 : 1),
+      });
+    } catch (e) {
+      toggleUpvote(issue.id, userId); // revert
+      Alert.alert('Error', String(e));
+    }
+  }
 
   async function changeStatus(newStatus: IssueStatus) {
     if (!issue?.id) return;
@@ -124,6 +141,38 @@ export default function IssueDetailScreen() {
             {issue.lat.toFixed(4)}, {issue.lng.toFixed(4)}
           </Text>
         </View>
+
+        {/* Upvote */}
+        <Pressable
+          onPress={handleUpvote}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 10,
+            backgroundColor: voted ? COLORS.brand + '15' : COLORS.bgLight,
+            borderRadius: 12,
+            padding: 14,
+            borderWidth: 1.5,
+            borderColor: voted ? COLORS.brand : COLORS.border,
+          }}
+        >
+          <Ionicons
+            name={voted ? 'arrow-up-circle' : 'arrow-up-circle-outline'}
+            size={32}
+            color={voted ? COLORS.brand : COLORS.gray}
+          />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontWeight: '700', fontSize: 22, color: voted ? COLORS.brand : COLORS.textPrimary }}>
+              {issue.upvotes ?? 0}
+            </Text>
+            <Text style={{ fontSize: 12, color: COLORS.textSecondary }}>
+              {t('issue.upvotes')} · {voted ? t('issue.upvote') : t('issue.upvote')}
+            </Text>
+          </View>
+          <Text style={{ fontSize: 13, color: voted ? COLORS.brand : COLORS.textSecondary, fontWeight: '600' }}>
+            {voted ? '✓' : t('issue.upvote')}
+          </Text>
+        </Pressable>
 
         {/* Status change — owner only */}
         {isOwner && (

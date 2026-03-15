@@ -8,6 +8,7 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 import { SCHOOLS_SEED, DEMO_REPORTS } from '../constants/seedData';
+import { ISSUES_SEED } from '../constants/issuesSeedData';
 
 export async function seedIfEmpty(): Promise<void> {
   try {
@@ -20,6 +21,23 @@ export async function seedIfEmpty(): Promise<void> {
     console.log('[seed] Schools seeded');
   } catch (e) {
     console.error('[seed] Failed to seed schools:', e);
+  }
+}
+
+export async function seedDemoIssues(): Promise<void> {
+  try {
+    const snap = await getDocs(collection(db, 'issues'));
+    if (!snap.empty) return;
+
+    for (const issue of ISSUES_SEED) {
+      await addDoc(collection(db, 'issues'), {
+        ...issue,
+        timestamp: serverTimestamp(),
+      });
+    }
+    console.log('[seed] Demo issues seeded');
+  } catch (e) {
+    console.error('[seed] Failed to seed issues:', e);
   }
 }
 

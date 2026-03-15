@@ -1,8 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, FlatList, Pressable, Image } from 'react-native';
+import { View, Text, FlatList, Pressable, Image, Alert } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
+import { doc, updateDoc, arrayUnion, arrayRemove, increment } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 import { useAppStore } from '../../lib/store';
 import { COLORS } from '../../constants/colors';
 import { IssueCategory, IssueStatus } from '../../types';
@@ -31,14 +33,17 @@ const ALL_CATEGORIES: IssueCategory[] = [
 ];
 
 type QuickFilter = 'all' | 'mine';
+type SortMode = 'hot' | 'new';
 
 export default function IssuesScreen() {
   const { t } = useTranslation();
   const router = useRouter();
   const issues = useAppStore((s) => s.issues);
   const userId = useAppStore((s) => s.userId);
+  const toggleUpvote = useAppStore((s) => s.toggleUpvote);
 
   const [quick, setQuick] = useState<QuickFilter>('all');
+  const [sortMode, setSortMode] = useState<SortMode>('hot');
   const [selectedCat, setSelectedCat] = useState<IssueCategory | null>(null);
 
   const baseIssues = useMemo(
@@ -59,10 +64,26 @@ export default function IssuesScreen() {
     ) as Record<IssueCategory, { open: number; done: number; problem: number }>;
   }, [baseIssues]);
 
-  const filtered = useMemo(
-    () => selectedCat ? baseIssues.filter((i) => i.category === selectedCat) : baseIssues,
-    [baseIssues, selectedCat],
-  );
+  const filtered = useMemo(() => {
+    const byCat = selectedCat ? baseIssues.filter((i) => i.category === selectedCat) : baseIssues;
+    if (sortMode === 'hot') {
+      return [...byCat].sort((a, b) => (b.upvotes ?? 0) - (a.upvotes ?? 0));
+    }
+    return byCat; // already ordered by timestamp desc from Firestore
+  }, [baseIssues, selectedCat, sortMode]);
+
+  async function handleUpvote(issueId: string, alreadyVoted: boolean) {
+    toggleUpvote(issueId, userId); // optimistic update
+    try {
+      await updateDoc(doc(db, 'issues', issueId), {
+        upvoters: alreadyVoted ? arrayRemove(userId) : arrayUnion(userId),
+        upvotes: increment(alreadyVoted ? -1 : 1),
+      });
+    } catch (e) {
+      toggleUpvote(issueId, userId); // revert on error
+      Alert.alert('Error', String(e));
+    }
+  }
 
   function handleCatPress(cat: IssueCategory) {
     setSelectedCat((prev) => (prev === cat ? null : cat));
@@ -70,8 +91,8 @@ export default function IssuesScreen() {
 
   const ListHeader = (
     <View>
-      {/* Quick filter pills */}
-      <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingTop: 12, paddingBottom: 8 }}>
+      {/* Quick filter pills + sort toggle */}
+      <View style={{ flexDirection: 'row', gap: 8, paddingHorizontal: 12, paddingTop: 12, paddingBottom: 8, alignItems: 'center' }}>
         {(['all', 'mine'] as QuickFilter[]).map((key) => {
           const active = quick === key;
           return (
@@ -93,6 +114,36 @@ export default function IssuesScreen() {
             </Pressable>
           );
         })}
+
+        {/* Sort toggle — Hot / New */}
+        <View style={{ flexDirection: 'row', marginLeft: 'auto', borderRadius: 20, borderWidth: 1, borderColor: COLORS.border, overflow: 'hidden' }}>
+          {(['hot', 'new'] as SortMode[]).map((mode) => {
+            const active = sortMode === mode;
+            return (
+              <Pressable
+                key={mode}
+                onPress={() => setSortMode(mode)}
+                style={{
+                  paddingHorizontal: 14,
+                  paddingVertical: 6,
+                  backgroundColor: active ? COLORS.brand : COLORS.white,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
+              >
+                <Ionicons
+                  name={mode === 'hot' ? 'flame-outline' : 'time-outline'}
+                  size={13}
+                  color={active ? COLORS.white : COLORS.textSecondary}
+                />
+                <Text style={{ color: active ? COLORS.white : COLORS.textSecondary, fontSize: 12, fontWeight: '600' }}>
+                  {mode === 'hot' ? t('issues.hot') : t('issues.new')}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
 
       {/* Category stat grid */}
@@ -167,52 +218,76 @@ export default function IssuesScreen() {
             {t('issues.empty')}
           </Text>
         }
-        renderItem={({ item }) => (
-          <Pressable
-            onPress={() => router.push(`/issue/${item.id}`)}
-            style={{
-              backgroundColor: COLORS.white,
-              borderRadius: 12,
-              padding: 12,
-              flexDirection: 'row',
-              gap: 12,
-              shadowColor: '#000',
-              shadowOpacity: 0.05,
-              shadowRadius: 4,
-              elevation: 2,
-            }}
-          >
-            {item.photoUrl ? (
-              <Image source={{ uri: item.photoUrl }} style={{ width: 64, height: 64, borderRadius: 8 }} />
-            ) : (
-              <View
-                style={{
-                  width: 64, height: 64, borderRadius: 8,
-                  backgroundColor: COLORS.bgLight,
-                  alignItems: 'center', justifyContent: 'center',
+        renderItem={({ item }) => {
+          const voted = (item.upvoters ?? []).includes(userId);
+          return (
+            <Pressable
+              onPress={() => router.push(`/issue/${item.id}`)}
+              style={{
+                backgroundColor: COLORS.white,
+                borderRadius: 12,
+                padding: 12,
+                flexDirection: 'row',
+                gap: 12,
+                shadowColor: '#000',
+                shadowOpacity: 0.05,
+                shadowRadius: 4,
+                elevation: 2,
+              }}
+            >
+              {/* Thumbnail or icon */}
+              {item.photoUrl ? (
+                <Image source={{ uri: item.photoUrl }} style={{ width: 64, height: 64, borderRadius: 8 }} />
+              ) : (
+                <View
+                  style={{
+                    width: 64, height: 64, borderRadius: 8,
+                    backgroundColor: COLORS.bgLight,
+                    alignItems: 'center', justifyContent: 'center',
+                  }}
+                >
+                  <Ionicons name={CATEGORY_ICON[item.category] ?? 'alert-circle-outline'} size={28} color={COLORS.brand} />
+                </View>
+              )}
+
+              {/* Content */}
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text style={{ fontWeight: '600', color: COLORS.textPrimary, fontSize: 14 }} numberOfLines={2}>
+                  {item.title}
+                </Text>
+                <Text style={{ color: COLORS.textSecondary, fontSize: 12 }}>
+                  {t(`cat.${item.category}`)}
+                </Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: STATUS_COLOR[item.status] ?? COLORS.gray }} />
+                  <Text style={{ color: COLORS.textSecondary, fontSize: 12 }}>{t(`issue.${item.status}`)}</Text>
+                  {item.createdBy === userId && (
+                    <Text style={{ color: COLORS.brand, fontSize: 11, marginLeft: 4 }}>• {t('issues.mine')}</Text>
+                  )}
+                </View>
+              </View>
+
+              {/* Upvote column */}
+              <Pressable
+                onPress={(e) => {
+                  e.stopPropagation?.();
+                  if (item.id) handleUpvote(item.id, voted);
                 }}
+                style={{ alignItems: 'center', justifyContent: 'center', paddingLeft: 4, gap: 2, minWidth: 36 }}
+                hitSlop={8}
               >
-                <Ionicons name={CATEGORY_ICON[item.category] ?? 'alert-circle-outline'} size={28} color={COLORS.brand} />
-              </View>
-            )}
-            <View style={{ flex: 1, gap: 4 }}>
-              <Text style={{ fontWeight: '600', color: COLORS.textPrimary, fontSize: 14 }} numberOfLines={2}>
-                {item.title}
-              </Text>
-              <Text style={{ color: COLORS.textSecondary, fontSize: 12 }}>
-                {t(`cat.${item.category}`)}
-              </Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: STATUS_COLOR[item.status] ?? COLORS.gray }} />
-                <Text style={{ color: COLORS.textSecondary, fontSize: 12 }}>{t(`issue.${item.status}`)}</Text>
-                {item.createdBy === userId && (
-                  <Text style={{ color: COLORS.brand, fontSize: 11, marginLeft: 4 }}>• {t('issues.mine')}</Text>
-                )}
-              </View>
-            </View>
-            <Ionicons name="chevron-forward" size={18} color={COLORS.gray} style={{ alignSelf: 'center' }} />
-          </Pressable>
-        )}
+                <Ionicons
+                  name={voted ? 'arrow-up-circle' : 'arrow-up-circle-outline'}
+                  size={24}
+                  color={voted ? COLORS.brand : COLORS.gray}
+                />
+                <Text style={{ fontSize: 12, fontWeight: '700', color: voted ? COLORS.brand : COLORS.textSecondary }}>
+                  {item.upvotes ?? 0}
+                </Text>
+              </Pressable>
+            </Pressable>
+          );
+        }}
       />
 
       {/* FAB */}

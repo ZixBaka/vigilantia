@@ -53,6 +53,8 @@ export interface Issue {
   lng: number;
   createdBy: string;
   timestamp: any;
+  upvotes: number;
+  upvoters: string[];
 }
 
 export interface SchoolStats {
