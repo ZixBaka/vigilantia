@@ -57,6 +57,13 @@ export interface Issue {
   upvoters: string[];
 }
 
+export interface IssueComment {
+  id?: string;
+  text: string;
+  userId: string;
+  timestamp: any;
+}
+
 export interface SchoolStats {
   total: number;
   done: number;

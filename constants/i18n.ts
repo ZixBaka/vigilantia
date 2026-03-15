@@ -115,6 +115,13 @@ const resources = {
       'issues.hot': 'Горячее',
       'issues.new': 'Новые',
 
+      // Comments
+      'issue.comments': 'Комментарии',
+      'issue.noComments': 'Пока нет комментариев',
+      'issue.commentPlaceholder': 'Напишите комментарий...',
+      'issue.commentSend': 'Отправить',
+      'issue.commentSending': 'Отправка...',
+
       // Profile & Karma
       'tab.profile': 'Профиль',
       'profile.karma': 'Карма',
@@ -250,6 +257,13 @@ const resources = {
       'issues.hot': 'Mashhur',
       'issues.new': 'Yangi',
 
+      // Comments
+      'issue.comments': 'Izohlar',
+      'issue.noComments': 'Hozircha izoh yo\'q',
+      'issue.commentPlaceholder': 'Izoh yozing...',
+      'issue.commentSend': 'Yuborish',
+      'issue.commentSending': 'Yuborilmoqda...',
+
       // Profile & Karma
       'tab.profile': 'Profil',
       'profile.karma': 'Karma',
@@ -383,6 +397,13 @@ const resources = {
       'issue.upvotes': 'votes',
       'issues.hot': 'Hot',
       'issues.new': 'New',
+
+      // Comments
+      'issue.comments': 'Comments',
+      'issue.noComments': 'No comments yet',
+      'issue.commentPlaceholder': 'Write a comment...',
+      'issue.commentSend': 'Send',
+      'issue.commentSending': 'Sending...',
 
       // Profile & Karma
       'tab.profile': 'Profile',
