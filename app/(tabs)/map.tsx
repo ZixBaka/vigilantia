@@ -1,11 +1,12 @@
-import { View, Text, Platform } from 'react-native';
-import MapView, { Marker, Callout } from 'react-native-maps';
+import { useState } from 'react';
+import { View, Text, Platform, Pressable } from 'react-native';
+import MapView, { Marker } from 'react-native-maps';
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useAppStore } from '../../lib/store';
 import { COLORS } from '../../constants/colors';
-import { IssueCategory, IssueStatus } from '../../types';
+import { IssueCategory, IssueStatus, Issue } from '../../types';
 
 const TASHKENT_REGION = {
   latitude: 41.2995,
@@ -35,6 +36,7 @@ const ISSUE_STATUS_COLOR: Record<IssueStatus, string> = {
 export default function MapScreen() {
   const { t } = useTranslation();
   const issues = useAppStore((s) => s.issues);
+  const [selected, setSelected] = useState<Issue | null>(null);
 
   if (Platform.OS === 'web') {
     return (
@@ -46,6 +48,10 @@ export default function MapScreen() {
     );
   }
 
+  const validIssues = issues.filter(
+    (i) => i.id && typeof i.lat === 'number' && typeof i.lng === 'number' && !isNaN(i.lat) && !isNaN(i.lng)
+  );
+
   return (
     <View style={{ flex: 1 }}>
       <MapView
@@ -53,87 +59,31 @@ export default function MapScreen() {
         initialRegion={TASHKENT_REGION}
         showsUserLocation
         showsMyLocationButton
+        onPress={() => setSelected(null)}
       >
-        {issues
-          .filter(
-            (issue) =>
-              issue.id &&
-              typeof issue.lat === 'number' &&
-              typeof issue.lng === 'number' &&
-              !isNaN(issue.lat) &&
-              !isNaN(issue.lng)
-          )
-          .map((issue) => {
-            const pinColor = ISSUE_STATUS_COLOR[issue.status] ?? COLORS.gray;
-            return (
-              <Marker
-                key={`issue-${issue.id}`}
-                coordinate={{ latitude: issue.lat, longitude: issue.lng }}
-                pinColor={pinColor}
-              >
-                <Callout onPress={() => router.push(`/issue/${issue.id}`)} tooltip>
-                  <View
-                    style={{
-                      backgroundColor: COLORS.white,
-                      borderRadius: 12,
-                      padding: 12,
-                      minWidth: 180,
-                      maxWidth: 240,
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.15,
-                      shadowRadius: 6,
-                      elevation: 5,
-                    }}
-                  >
-                    {/* Category row */}
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                      <Ionicons name={CATEGORY_ICON[issue.category]} size={13} color={COLORS.brand} />
-                      <Text style={{ fontSize: 11, color: COLORS.brand, fontWeight: '600' }}>
-                        {t(`cat.${issue.category}`)}
-                      </Text>
-                    </View>
-
-                    {/* Title */}
-                    <Text
-                      style={{ fontWeight: '700', fontSize: 14, color: COLORS.textPrimary, lineHeight: 19 }}
-                      numberOfLines={2}
-                    >
-                      {issue.title}
-                    </Text>
-
-                    {/* Status + upvotes row */}
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 6 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-                        <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: pinColor }} />
-                        <Text style={{ fontSize: 11, color: COLORS.textSecondary }}>
-                          {t(`issue.${issue.status}`)}
-                        </Text>
-                      </View>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3 }}>
-                        <Ionicons name="arrow-up-circle-outline" size={13} color={COLORS.gray} />
-                        <Text style={{ fontSize: 11, color: COLORS.textSecondary, fontWeight: '600' }}>
-                          {issue.upvotes ?? 0}
-                        </Text>
-                      </View>
-                    </View>
-
-                    {/* Tap hint */}
-                    <Text style={{ fontSize: 10, color: COLORS.brand, marginTop: 6, textAlign: 'center' }}>
-                      Нажмите для подробностей →
-                    </Text>
-                  </View>
-                </Callout>
-              </Marker>
-            );
-          })}
+        {validIssues.map((issue) => {
+          const pinColor = ISSUE_STATUS_COLOR[issue.status] ?? COLORS.gray;
+          const isSelected = selected?.id === issue.id;
+          return (
+            <Marker
+              key={`issue-${issue.id}`}
+              coordinate={{ latitude: issue.lat, longitude: issue.lng }}
+              pinColor={pinColor}
+              onPress={(e) => {
+                e.stopPropagation();
+                setSelected(issue);
+              }}
+              zIndex={isSelected ? 10 : 1}
+            />
+          );
+        })}
       </MapView>
 
       {/* Legend */}
       <View
         style={{
           position: 'absolute',
-          bottom: 24,
+          top: 16,
           right: 16,
           backgroundColor: 'rgba(255,255,255,0.95)',
           borderRadius: 14,
@@ -152,6 +102,83 @@ export default function MapScreen() {
           </View>
         ))}
       </View>
+
+      {/* Bottom info card */}
+      {selected && (
+        <Pressable
+          onPress={() => router.push(`/issue/${selected.id}`)}
+          style={{
+            position: 'absolute',
+            bottom: 24,
+            left: 16,
+            right: 16,
+            backgroundColor: COLORS.white,
+            borderRadius: 16,
+            padding: 16,
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.18,
+            shadowRadius: 12,
+            elevation: 8,
+            gap: 8,
+          }}
+        >
+          {/* Category row */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Ionicons name={CATEGORY_ICON[selected.category]} size={14} color={COLORS.brand} />
+            <Text style={{ fontSize: 12, color: COLORS.brand, fontWeight: '600' }}>
+              {t(`cat.${selected.category}`)}
+            </Text>
+            <View
+              style={{
+                marginLeft: 'auto',
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 3,
+                backgroundColor: (ISSUE_STATUS_COLOR[selected.status]) + '22',
+                borderRadius: 20,
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+              }}
+            >
+              <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: ISSUE_STATUS_COLOR[selected.status] }} />
+              <Text style={{ fontSize: 11, color: ISSUE_STATUS_COLOR[selected.status], fontWeight: '600' }}>
+                {t(`issue.${selected.status}`)}
+              </Text>
+            </View>
+          </View>
+
+          {/* Title */}
+          <Text style={{ fontWeight: '700', fontSize: 16, color: COLORS.textPrimary, lineHeight: 22 }} numberOfLines={2}>
+            {selected.title}
+          </Text>
+
+          {/* Footer: upvotes + open button */}
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <Ionicons name="arrow-up-circle-outline" size={15} color={COLORS.gray} />
+            <Text style={{ fontSize: 12, color: COLORS.textSecondary, marginLeft: 4, fontWeight: '600' }}>
+              {selected.upvotes ?? 0}
+            </Text>
+            <View style={{ flex: 1 }} />
+            <View
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 4,
+                backgroundColor: COLORS.brand,
+                borderRadius: 20,
+                paddingHorizontal: 14,
+                paddingVertical: 6,
+              }}
+            >
+              <Text style={{ color: COLORS.white, fontSize: 13, fontWeight: '700' }}>
+                Подробнее
+              </Text>
+              <Ionicons name="arrow-forward" size={13} color={COLORS.white} />
+            </View>
+          </View>
+        </Pressable>
+      )}
     </View>
   );
 }
