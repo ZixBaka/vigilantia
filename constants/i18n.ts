@@ -153,6 +153,18 @@ const resources = {
       'badge.allRounder': 'Мастер на все руки',
       'badge.allRounderDesc': 'Жалобы во всех 9 категориях',
 
+      // Partner rewards (spend karma)
+      'promo.title': 'Награды партнёров',
+      'promo.available': 'доступно',
+      'promo.noOffers': 'Нет доступных предложений',
+      'promo.spend': 'Потратить {{karma}} кармы',
+      'promo.needMore': 'Не хватает {{need}} кармы',
+      'promo.claimed': 'Получено',
+      'promo.success': 'Код получен!',
+      'promo.successMsg': '{{sponsor}}: {{code}}',
+      'promo.error': 'Ошибка',
+      'promo.notEnough': 'Не хватает {{need}} очков кармы.',
+
       // Language
       'lang.ru': 'Русский',
       'lang.uz': "O'zbek",
@@ -300,6 +312,18 @@ const resources = {
       'badge.allRounder': 'Ko\'p qirrali usta',
       'badge.allRounderDesc': 'Barcha 9 kategoriyada shikoyatlar',
 
+      // Partner rewards (spend karma)
+      'promo.title': 'Hamkor mukofotlari',
+      'promo.available': 'mavjud',
+      'promo.noOffers': "Taklif yo'q",
+      'promo.spend': '{{karma}} karma sarflash',
+      'promo.needMore': "{{need}} karma yetishmaydi",
+      'promo.claimed': 'Olindi',
+      'promo.success': 'Kod olindi!',
+      'promo.successMsg': '{{sponsor}}: {{code}}',
+      'promo.error': 'Xato',
+      'promo.notEnough': "{{need}} karma yetishmaydi.",
+
       'lang.ru': 'Русский',
       'lang.uz': "O'zbek",
       'lang.en': 'English',
@@ -445,6 +469,18 @@ const resources = {
       'badge.guardianDesc': 'Report a safety issue',
       'badge.allRounder': 'All-Rounder',
       'badge.allRounderDesc': 'Issues in all 9 categories',
+
+      // Partner rewards (spend karma)
+      'promo.title': 'Partner Rewards',
+      'promo.available': 'available',
+      'promo.noOffers': 'No offers available',
+      'promo.spend': 'Spend {{karma}} karma',
+      'promo.needMore': 'Need {{need}} more karma',
+      'promo.claimed': 'Claimed',
+      'promo.success': 'Code unlocked!',
+      'promo.successMsg': '{{sponsor}}: {{code}}',
+      'promo.error': 'Error',
+      'promo.notEnough': 'You need {{need}} more karma points.',
 
       'lang.ru': 'Русский',
       'lang.uz': "O'zbek",

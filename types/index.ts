@@ -57,6 +57,18 @@ export interface Issue {
   upvoters: string[];
 }
 
+export interface PromoCode {
+  id?: string;
+  sponsorName: string;
+  sponsorIcon: string;      // emoji
+  description: string;
+  category: IssueCategory;
+  karmaCost: number;        // karma user spends to unlock
+  codeValue: string;        // the actual promo code revealed after spending
+  redeemedBy: string[];     // userIds who have already claimed
+  active: boolean;
+}
+
 export interface IssueComment {
   id?: string;
   text: string;

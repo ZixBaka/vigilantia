@@ -1,11 +1,13 @@
-import { useMemo } from 'react';
-import { View, Text, ScrollView, Pressable, Image } from 'react-native';
+import { useMemo, useState, useEffect } from 'react';
+import { View, Text, ScrollView, Pressable, Image, ActivityIndicator, Alert } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { collection, doc, getDocs, updateDoc, arrayUnion, increment, query, where } from 'firebase/firestore';
+import { db } from '../../lib/firebase';
 import { useAppStore } from '../../lib/store';
 import { COLORS } from '../../constants/colors';
-import { IssueCategory } from '../../types';
+import { IssueCategory, PromoCode } from '../../types';
 
 const ALL_CATEGORIES: IssueCategory[] = [
   'education', 'healthcare', 'transport', 'ecology',
@@ -258,6 +260,12 @@ export default function ProfileScreen() {
   const router = useRouter();
   const issues = useAppStore((s) => s.issues);
   const userId = useAppStore((s) => s.userId);
+  const karmaSpent = useAppStore((s) => s.karmaSpent);
+  const addKarmaSpent = useAppStore((s) => s.addKarmaSpent);
+
+  const [offers, setOffers] = useState<PromoCode[]>([]);
+  const [loadingOffers, setLoadingOffers] = useState(true);
+  const [claiming, setClaiming] = useState<string | null>(null);
 
   const myIssues = useMemo(
     () => issues.filter((i) => i.createdBy === userId),
@@ -271,6 +279,52 @@ export default function ProfileScreen() {
     const categoriesUsed = new Set(myIssues.map((i) => i.category));
     return { total, resolved, karma, categoriesUsed };
   }, [myIssues]);
+
+  const availableKarma = stats.karma - karmaSpent;
+
+  useEffect(() => {
+    if (!userId) return;
+    getDocs(query(collection(db, 'promoCodes'), where('active', '==', true)))
+      .then((snap) => {
+        setOffers(snap.docs.map((d) => ({ id: d.id, ...d.data() } as PromoCode)));
+      })
+      .catch(() => {})
+      .finally(() => setLoadingOffers(false));
+  }, [userId]);
+
+  async function claimOffer(offer: PromoCode) {
+    if (!offer.id || !userId) return;
+    if (availableKarma < offer.karmaCost) {
+      Alert.alert(t('promo.error'), t('promo.notEnough', { need: offer.karmaCost - availableKarma }));
+      return;
+    }
+    setClaiming(offer.id);
+    try {
+      await updateDoc(doc(db, 'promoCodes', offer.id), {
+        redeemedBy: arrayUnion(userId),
+      });
+      await updateDoc(doc(db, 'users', userId), {
+        karmaSpent: increment(offer.karmaCost),
+      });
+      addKarmaSpent(offer.karmaCost);
+      // Update local offers so UI shows the code immediately
+      setOffers((prev) =>
+        prev.map((o) =>
+          o.id === offer.id
+            ? { ...o, redeemedBy: [...(o.redeemedBy ?? []), userId] }
+            : o,
+        ),
+      );
+      Alert.alert(
+        t('promo.success'),
+        t('promo.successMsg', { sponsor: offer.sponsorName, code: offer.codeValue }),
+      );
+    } catch (e) {
+      Alert.alert('Error', String(e));
+    } finally {
+      setClaiming(null);
+    }
+  }
 
   const badges: BadgeDef[] = useMemo(() => [
     { key: 'firstStep',       emoji: '🌱', earned: stats.total >= 1 },
@@ -464,6 +518,151 @@ export default function ProfileScreen() {
             <LandmarkCardItem key={card.id} card={card} karma={stats.karma} />
           ))}
         </ScrollView>
+      </View>
+
+      {/* Partner Rewards */}
+      <View>
+        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <Ionicons name="gift-outline" size={20} color={COLORS.brand} />
+            <Text style={{ fontSize: 17, fontWeight: '700', color: COLORS.textPrimary }}>
+              {t('promo.title')}
+            </Text>
+          </View>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <Ionicons name="flash" size={13} color={COLORS.warning} />
+            <Text style={{ fontSize: 13, fontWeight: '700', color: COLORS.warning }}>
+              {availableKarma}
+            </Text>
+            <Text style={{ fontSize: 12, color: COLORS.textSecondary }}>{t('promo.available')}</Text>
+          </View>
+        </View>
+
+        {loadingOffers ? (
+          <ActivityIndicator color={COLORS.brand} style={{ paddingVertical: 24 }} />
+        ) : offers.length === 0 ? (
+          <Text style={{ color: COLORS.textSecondary, textAlign: 'center', paddingVertical: 16 }}>
+            {t('promo.noOffers')}
+          </Text>
+        ) : (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingVertical: 8, paddingRight: 4 }}
+          >
+            {offers.map((offer) => {
+              const claimed = (offer.redeemedBy ?? []).includes(userId);
+              const canAfford = availableKarma >= offer.karmaCost;
+              const isClaiming = claiming === offer.id;
+              return (
+                <View
+                  key={offer.id}
+                  style={{
+                    width: 190,
+                    marginRight: 14,
+                    backgroundColor: COLORS.white,
+                    borderRadius: 18,
+                    borderWidth: claimed ? 2 : 1.5,
+                    borderColor: claimed ? COLORS.success : canAfford ? COLORS.brand : COLORS.border,
+                    overflow: 'hidden',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 3 },
+                    shadowOpacity: 0.1,
+                    shadowRadius: 6,
+                    elevation: 3,
+                  }}
+                >
+                  {/* Header */}
+                  <View
+                    style={{
+                      backgroundColor: claimed ? COLORS.success + '18' : COLORS.brand + '10',
+                      padding: 14,
+                      alignItems: 'center',
+                      gap: 6,
+                    }}
+                  >
+                    <Text style={{ fontSize: 36 }}>{offer.sponsorIcon}</Text>
+                    <Text style={{ fontSize: 13, fontWeight: '800', color: COLORS.textPrimary, textAlign: 'center' }}>
+                      {offer.sponsorName}
+                    </Text>
+                  </View>
+
+                  {/* Body */}
+                  <View style={{ padding: 12, gap: 10 }}>
+                    <Text style={{ fontSize: 11, color: COLORS.textSecondary, lineHeight: 16 }} numberOfLines={3}>
+                      {offer.description}
+                    </Text>
+
+                    {/* Karma cost */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                      <Ionicons name="flash" size={14} color={COLORS.warning} />
+                      <Text style={{ fontSize: 18, fontWeight: '900', color: COLORS.warning }}>
+                        {offer.karmaCost}
+                      </Text>
+                      <Text style={{ fontSize: 11, color: COLORS.textSecondary }}>karma</Text>
+                    </View>
+
+                    {/* Action */}
+                    {claimed ? (
+                      <View
+                        style={{
+                          backgroundColor: COLORS.success + '15',
+                          borderRadius: 10,
+                          padding: 10,
+                          gap: 4,
+                          borderWidth: 1,
+                          borderColor: COLORS.success + '40',
+                        }}
+                      >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                          <Ionicons name="checkmark-circle" size={14} color={COLORS.success} />
+                          <Text style={{ fontSize: 11, color: COLORS.success, fontWeight: '700' }}>
+                            {t('promo.claimed')}
+                          </Text>
+                        </View>
+                        <Text
+                          style={{
+                            fontSize: 14,
+                            fontWeight: '900',
+                            color: COLORS.textPrimary,
+                            letterSpacing: 1.5,
+                          }}
+                        >
+                          {offer.codeValue}
+                        </Text>
+                      </View>
+                    ) : (
+                      <Pressable
+                        onPress={() => claimOffer(offer)}
+                        disabled={!canAfford || isClaiming}
+                        style={{
+                          backgroundColor: canAfford ? COLORS.brand : COLORS.border,
+                          borderRadius: 10,
+                          paddingVertical: 10,
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          minHeight: 38,
+                        }}
+                      >
+                        {isClaiming ? (
+                          <ActivityIndicator size="small" color={COLORS.white} />
+                        ) : canAfford ? (
+                          <Text style={{ color: COLORS.white, fontWeight: '700', fontSize: 13 }}>
+                            {t('promo.spend', { karma: offer.karmaCost })}
+                          </Text>
+                        ) : (
+                          <Text style={{ color: COLORS.white, fontSize: 11, fontWeight: '600', textAlign: 'center', paddingHorizontal: 4 }}>
+                            {t('promo.needMore', { need: offer.karmaCost - availableKarma })}
+                          </Text>
+                        )}
+                      </Pressable>
+                    )}
+                  </View>
+                </View>
+              );
+            })}
+          </ScrollView>
+        )}
       </View>
 
       {/* My issues link */}

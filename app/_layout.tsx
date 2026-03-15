@@ -4,6 +4,8 @@ import { Stack } from 'expo-router';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { db } from '../lib/firebase';
 import { useIssues } from '../hooks/useIssues';
 import { useAppStore } from '../lib/store';
 import { seedDemoIssues } from '../lib/seed';
@@ -16,6 +18,7 @@ function DataBootstrap() {
 export default function RootLayout() {
   const { t } = useTranslation();
   const setUserId = useAppStore((s) => s.setUserId);
+  const setKarmaSpent = useAppStore((s) => s.setKarmaSpent);
 
   useEffect(() => {
     (async () => {
@@ -25,6 +28,15 @@ export default function RootLayout() {
         await AsyncStorage.setItem('userId', id);
       }
       setUserId(id);
+      // Load spent karma from Firestore
+      try {
+        const userDoc = await getDoc(doc(db, 'users', id));
+        if (userDoc.exists()) {
+          setKarmaSpent(userDoc.data().karmaSpent ?? 0);
+        } else {
+          await setDoc(doc(db, 'users', id), { karmaSpent: 0 });
+        }
+      } catch (_) {}
       await seedDemoIssues();
     })();
   }, []);

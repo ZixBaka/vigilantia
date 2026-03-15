@@ -7,6 +7,7 @@ interface AppStore {
   issues: Issue[];
   language: string;
   userId: string;
+  karmaSpent: number;
   setSchools: (schools: School[]) => void;
   setReports: (reports: Report[]) => void;
   addReport: (report: Report) => void;
@@ -16,6 +17,8 @@ interface AppStore {
   toggleUpvote: (issueId: string, userId: string) => void;
   setLanguage: (lang: string) => void;
   setUserId: (id: string) => void;
+  setKarmaSpent: (karma: number) => void;
+  addKarmaSpent: (amount: number) => void;
 }
 
 export const useAppStore = create<AppStore>((set) => ({
@@ -24,6 +27,7 @@ export const useAppStore = create<AppStore>((set) => ({
   issues: [],
   language: 'ru',
   userId: '',
+  karmaSpent: 0,
   setSchools: (schools) => set({ schools }),
   setReports: (reports) => set({ reports }),
   addReport: (report) =>
@@ -52,4 +56,6 @@ export const useAppStore = create<AppStore>((set) => ({
     })),
   setLanguage: (language) => set({ language }),
   setUserId: (userId) => set({ userId }),
+  setKarmaSpent: (karmaSpent) => set({ karmaSpent }),
+  addKarmaSpent: (amount) => set((state) => ({ karmaSpent: state.karmaSpent + amount })),
 }));
